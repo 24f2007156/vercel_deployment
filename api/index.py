@@ -29,6 +29,10 @@ def get_percentile(data, p):
     if f == c: return s_data[int(k)]
     return s_data[int(f)] * (c - k) + s_data[int(c)] * (k - f)
 
+@app.get("/")
+def read_root():
+    return {"message": "API is running. Send a POST request to this endpoint with a QueryPayload to get metrics."}
+
 @app.post("/{full_path:path}")
 def handle_post(full_path: str, payload: QueryPayload):
     return process_metrics(payload)
