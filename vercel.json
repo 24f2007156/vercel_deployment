@@ -1,5 +1,15 @@
 {
   "builds": [{ "src": "api/index.py", "use": "@vercel/python" }],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, PUT, DELETE, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization, X-Requested-With, Accept" }
+      ]
+    }
+  ],
   "routes": [
     {
       "src": "/(.*)",

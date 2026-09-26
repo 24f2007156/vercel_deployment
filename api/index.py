@@ -9,17 +9,7 @@ from pydantic import BaseModel
 
 app = FastAPI()
 
-@app.middleware("http")
-async def force_cors(request: Request, call_next):
-    if request.method == "OPTIONS":
-        response = Response()
-    else:
-        response = await call_next(request)
-        
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "*"
-    return response
+
 class QueryPayload(BaseModel):
     regions: List[str]
     threshold_ms: float
@@ -32,6 +22,14 @@ def get_percentile(data, p):
     c = math.ceil(k)
     if f == c: return s_data[int(k)]
     return s_data[int(f)] * (c - k) + s_data[int(c)] * (k - f)
+
+@app.options("/{full_path:path}")
+def preflight_handler(full_path: str):
+    return Response(status_code=200)
+
+@app.options("/")
+def preflight_handler_root():
+    return Response(status_code=200)
 
 @app.get("/")
 def read_root():
