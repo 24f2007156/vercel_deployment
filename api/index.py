@@ -2,10 +2,25 @@ import json
 import math
 import os
 from typing import List
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Request, Response
 from pydantic import BaseModel
 
 app = FastAPI()
+
+# 1. Custom Middleware: Brute-force CORS headers onto EVERY response
+@app.middleware("http")
+async def force_cors(request: Request, call_next):
+    # Handle preflight OPTIONS requests directly
+    if request.method == "OPTIONS":
+        response = Response()
+    else:
+        response = await call_next(request)
+        
+    # Inject headers unconditionally
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
 
 class QueryPayload(BaseModel):
     regions: List[str]
@@ -20,28 +35,15 @@ def get_percentile(data, p):
     if f == c: return s_data[int(k)]
     return s_data[int(f)] * (c - k) + s_data[int(c)] * (k - f)
 
-# Catch both root and path requests and forcefully attach the header
 @app.post("/{full_path:path}")
-def handle_post(full_path: str, payload: QueryPayload, response: Response):
-    response.headers["Access-Control-Allow-Origin"] = "*"
+def handle_post(full_path: str, payload: QueryPayload):
     return process_metrics(payload)
 
 @app.post("/")
-def handle_post_root(payload: QueryPayload, response: Response):
-    response.headers["Access-Control-Allow-Origin"] = "*"
+def handle_post_root(payload: QueryPayload):
     return process_metrics(payload)
 
-# Handle preflight OPTIONS requests if the grader sends one
-@app.options("/")
-@app.options("/{full_path:path}")
-def preflight(response: Response):
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "*"
-    return {}
-
 def process_metrics(payload: QueryPayload):
-    # Locate and load the telemetry JSON
     try:
         data_path = os.path.join(os.path.dirname(__file__), "..", "telemetry.json")
         with open(data_path, "r") as f:
