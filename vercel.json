@@ -10,11 +10,10 @@
       ]
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/(.*)",
-      "dest": "api/index.py",
-      "methods": ["GET", "POST", "OPTIONS"]
+      "source": "/(.*)",
+      "destination": "/api/index.py"
     }
   ]
 }
