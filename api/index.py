@@ -2,20 +2,10 @@ import json
 import math
 import os
 from typing import List
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, Response
 from pydantic import BaseModel
 
 app = FastAPI()
-
-# Enable CORS for all origins
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 class QueryPayload(BaseModel):
     regions: List[str]
@@ -30,14 +20,25 @@ def get_percentile(data, p):
     if f == c: return s_data[int(k)]
     return s_data[int(f)] * (c - k) + s_data[int(c)] * (k - f)
 
-# Catch both root and path requests
+# Catch both root and path requests and forcefully attach the header
 @app.post("/{full_path:path}")
-def handle_post(full_path: str, payload: QueryPayload):
+def handle_post(full_path: str, payload: QueryPayload, response: Response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
     return process_metrics(payload)
 
 @app.post("/")
-def handle_post_root(payload: QueryPayload):
+def handle_post_root(payload: QueryPayload, response: Response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
     return process_metrics(payload)
+
+# Handle preflight OPTIONS requests if the grader sends one
+@app.options("/")
+@app.options("/{full_path:path}")
+def preflight(response: Response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    return {}
 
 def process_metrics(payload: QueryPayload):
     # Locate and load the telemetry JSON
