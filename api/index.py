@@ -5,17 +5,21 @@ from typing import List
 from fastapi import FastAPI, Request, Response
 from pydantic import BaseModel
 
-from fastapi.middleware.cors import CORSMiddleware
+
 
 app = FastAPI()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+@app.middleware("http")
+async def force_cors(request: Request, call_next):
+    if request.method == "OPTIONS":
+        response = Response()
+    else:
+        response = await call_next(request)
+        
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
 class QueryPayload(BaseModel):
     regions: List[str]
     threshold_ms: float
